@@ -1,0 +1,148 @@
+import sys
+import copy
+
+
+class BayesNode:
+    def __init__ (self, name, parents, cpt, node_type):
+          self.name = name
+          self.parents = parents
+          self.cpt = cpt
+          self.type = node_type
+#inorder to easy get the nodes set up the BayesNetwork:
+
+
+class BayesNetwork:
+    def __init__(self):
+        #parents node must be add before my child , homework has make the order correctly
+        self.node_name_list = []
+        self.nodes_list=[]
+        self.utility_node = None
+
+    def add_bayesNode(self, node):
+        self.node_name_list.append(node.name)
+        self.nodes_list.append(node)
+
+    def get_bayesNode(self,node_name):
+        index = self.node_name_list.index(node_name)
+        return self.nodes_list[index]
+
+
+
+# below is the function we need:
+def go(query_sentence):
+    key = query_sentence.split('(')[0]
+    print key
+    args_part =query_sentence.split('(')[1].split(')')[0]
+    #args is a list to store the query_part and evidence_part
+    args = args_part.split(' | ')
+
+
+    '''
+    if(len(args) ==1):
+       count_joint_probability()
+    elif(len(args) == 2):
+        count_conditional_probability()
+    '''
+
+
+    #evidence = query_sentence.split('(')[1].split(')')[0].split('|')[1]
+    # print key
+    #print args
+    #print len(args)
+
+
+##------------------------------ data precessor--------------------------------------------###
+#get the input
+#fileName = sys.argv[2]
+fileName ="sample02.txt"
+input_file = open(fileName,'r')
+
+# create a query_list to store all the query;
+
+query_list = []
+
+query = input_file.readline().strip('\n')
+
+while query != "******":
+    query_list.append(query)
+    query = input_file.readline().strip('\n')
+
+
+#print(query_list)
+# create a bayesNodeList to store All the bayesNodes
+
+my_bayes_net = BayesNetwork()
+query = input_file.readline().strip('\n')
+
+while query != '': # get the node input information
+    #print query
+    tmp_arr = query.split(' ')
+    nodeName = tmp_arr[0]
+    parents= tmp_arr[2:]
+    #print parents
+    is_decision = False
+    cpt =[]
+    # according the ** to counter the row in table
+    for i in range(2 ** len(parents)):
+        table_line= input_file.readline().strip('\n').split(' ')
+        if table_line[0] == 'decision':
+            is_decision = True
+        else:
+            table_line[0] = float(table_line[0])
+            cpt.append(table_line)
+
+    #node already can be created
+    if is_decision == True:
+        nodeType = "decision"
+    else:
+        nodeType= "nondecision"
+   # store in dict
+    node = BayesNode(nodeName, parents, cpt, nodeType)
+    my_bayes_net.add_bayesNode(node)
+
+
+    # next line should be *** or "" or *****
+
+    query = input_file.readline().strip('\n')
+    # if query not equal to *** , all node have been store
+    if(query != "***"):
+       break
+    # if equal to *** need to continue
+    query = input_file.readline().strip('\n')
+
+# print (bayesNodeDict)
+# need to handle utility situation
+# handle utility node
+if (query == "******"):
+    uti_tmps  = input_file.readline().strip('\n').strip(' ').split(' ')
+    #print(uti_tmps)
+    nodeName = uti_tmps[0]
+    #print tmp_arr[0]
+    parents= uti_tmps[2:]
+    cpt =[]
+    # according the ** to counter the row in table
+    for i in range(2 ** len(parents)):
+        table_line= input_file.readline().strip('\n').split(' ')
+        table_line[0] = float(table_line[0])
+        cpt.append(table_line)
+    node = BayesNode(nodeName, parents, cpt, 'utility')
+    my_bayes_net.utility_node = node
+    print node.type
+print(my_bayes_net.nodes_list)
+print(my_bayes_net.node_name_list)
+print(my_bayes_net.utility_node.name)
+input_file.close()
+
+
+#-----------------------------------------XXXXX-----------------------------------------#
+
+
+
+
+
+
+
+'''
+for i in range(len(query_list)):
+    go(query_list[i])
+'''''
