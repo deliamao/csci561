@@ -71,7 +71,7 @@ def go(query_sentence):
                 tmp = var.split(' = ')
                 evi_var_dict[tmp[0]] = tmp[1]
             p = enumeration_ask(con_var_dict, evi_var_dict, my_bayes_net)
-            #print p
+            print p
 
 
 
@@ -83,7 +83,7 @@ def go(query_sentence):
                 even_dict[tmp[0]] = tmp[1]
             # need to calcuate the e
             p = enumerate_all(my_bayes_net.node_name_list, even_dict, my_bayes_net)
-            #print p
+            print p
 
 
 
@@ -98,7 +98,51 @@ def go(query_sentence):
              evidence[content[0]] = content[1]
          eu = compute_eu(evidence, my_bayes_net)
          print eu
-      # elif key == 'MEU':
+
+    elif key == 'MEU': #condiction is not set up ,but evidence must be now happen or not
+         args_list = args_list.split(' | ' )
+         evi_dict = {}
+         con_vars_arr = [] # con_dict won't have "+" or "-"
+         if len(args_list) > 1: # need to get evidnce
+            evi_vars = args_list[1].split(', ')
+            for evi in evi_vars:
+                evi = evi.split(' = ')
+                evi_dict[evi[0]] = evi[1]
+         # no matter we have evidence or not , we need store con_dict
+         con_vars = args_list[0].split(', ')
+         for con in con_vars:
+             con_vars_arr.append(con)
+         # already store well the MEU data need to call compute_meu
+         con_value, meu =compute_meu(con_vars_arr, evi_dict, my_bayes_net)
+         print con_value, meu
+
+
+def compute_meu(con_vars_arr=[], evi_dict={}, bn = BayesNetwork()):
+    '''
+    :param con_vars_arr: can't be the same as evi_dict, so this won't need check the n and d difference
+    :param evi_dict:
+    :return:
+    '''
+    # need to grant "+" or "-" for con_vars_arr
+    max_eu = -2147483648
+    max_eu_con_var_value = []
+    con_var_length = len(con_vars_arr)
+    for i in range(2**con_var_length):
+        tmp_con_value_arr = get_var_values(i, con_var_length)
+        con_evi = copy.deepcopy(evi_dict)
+        #contruct con_evi dict , need to add the con var and con_var_value
+        for j in range(con_var_length):
+            con_evi[con_vars_arr[j]] = tmp_con_value_arr[j]
+            eu = compute_eu(con_evi, bn)
+            if(eu > max_eu):
+                max_eu = eu
+                max_eu_con_var_value = tmp_con_value_arr
+     #after compute all the get the most max one
+     return max_eu_con_var_value,max_eu
+
+
+
+
 
 
 
