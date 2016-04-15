@@ -1,16 +1,7 @@
 import sys
 import copy
 
-
-class BayesNode:
-    def __init__ (self, name, parents, cpt, node_type):
-          self.name = name
-          self.parents = parents
-          self.cpt = cpt
-          self.type = node_type
-#inorder to easy get the nodes set up the BayesNetwork:
-
-
+#in order to easy get the nodes set up the BayesNetwork:
 class BayesNetwork:
     def __init__(self):
         #parents node must be add before my child , homework has make the order correctly
@@ -26,29 +17,185 @@ class BayesNetwork:
         index = self.node_name_list.index(node_name)
         return self.nodes_list[index]
 
+class BayesNode:
+    def __init__ (self, name, parents, cpt, node_type):
+          self.name = name
+          self.parents = parents
+          self.cpt = cpt
+          self.type = node_type
+
+    def get_p(self,symbol,current_events):
+        '''
+        :param symbol: ' + ' ' -'
+        :param current_event:  current event have been add to current_events map
+        :return:
+        '''
+        if self.type == "decision":
+            return 1.0
+        # if it is not descision need to calcuate the p
+        # need loop the table to find out the different situation
+        for i in range(len(self.cpt)):
+            find = True
+            for j in range(len(self.parents)):
+                parent = self.parents[j]
+                val = self.cpt[i][j+1]
+                if current_events[parent] != val:
+                    find = False
+                    break
+            if find:
+                if symbol == '+': return self.cpt[i][0]
+                else: return 1.0 - self.cpt[i][0]
+
 
 
 # below is the function we need:
 def go(query_sentence):
     key = query_sentence.split('(')[0]
-    print key
-    args_part =query_sentence.split('(')[1].split(')')[0]
-    #args is a list to store the query_part and evidence_part
-    args = args_part.split(' | ')
+    #print key
+    args_list =query_sentence.split('(')[1].split(')')[0]
+    if key == 'P':
+        if ' | ' in args_list: # this will be conditional probability problem
+            args_list = args_list.split(' | ' )
+            con_var = args_list[0]
+            evi_var = args_list[1]
+            con_var = con_var.split(', ')
+            evi_var = evi_var.split(', ')
+            con_var_dict = {}
+            evi_var_dict = {}
+            #store all the condition query part in map
+            for var in con_var:
+                tmp = var.split(' = ')
+                con_var_dict[tmp[0]] = tmp[1]
+
+            for var in evi_var :
+                tmp = var.split(' = ')
+                evi_var_dict[tmp[0]] = tmp[1]
+            p = enumeration_ask(con_var_dict, evi_var_dict, my_bayes_net)
+            #print p
 
 
-    '''
-    if(len(args) ==1):
-       count_joint_probability()
-    elif(len(args) == 2):
-        count_conditional_probability()
-    '''
+
+        else: #prior
+            con_var = args_list.split(', ')
+            even_dict = {}
+            for var in con_var:
+                tmp = var.split(' = ')
+                even_dict[tmp[0]] = tmp[1]
+            # need to calcuate the e
+            p = enumerate_all(my_bayes_net.node_name_list, even_dict, my_bayes_net)
+            #print p
 
 
-    #evidence = query_sentence.split('(')[1].split(')')[0].split('|')[1]
-    # print key
-    #print args
-    #print len(args)
+
+    elif key == 'EU':
+         args_list = args_list.split(' | ' )
+         if(len(args_list) > 1):
+             args_list[0] = args_list[0] + ', '+ args_list[1]
+         args = args_list[0].split(', ')
+         evidence= {}
+         for content in args:
+             content = content.split(' = ')
+             evidence[content[0]] = content[1]
+         eu = compute_eu(evidence, my_bayes_net)
+         print eu
+      # elif key == 'MEU':
+
+
+
+
+def compute_eu(e={}, bn=BayesNetwork()):
+    # get the utility node
+    utility_node = bn.utility_node
+    # get the parents
+    utility_node_parents = utility_node.parents
+    # need to loop very row in  utility_node.cpt
+    #print utility_node.cpt
+    sum_eu = 0.0
+    for row in utility_node.cpt:
+        con_dict = {}
+        for j in range(len(utility_node_parents)):  #construct the con_dict
+            con_dict[utility_node_parents[j]] = row[j+1]
+        #print row[0]
+        sum_eu += enumeration_ask(con_dict, e, bn) * row[0]
+        #print sum_eu
+    return sum_eu
+
+def enumeration_ask(n_dict, d_dict, bn):
+    """
+    :param mol_dict: condition dict {leak:+}
+    :param mol_dict: evidence
+    :param bn:bayes network
+    :return: p
+    """
+    #print n_dict
+    # delete all the descision node in
+
+    for x in n_dict.keys():
+        if d_dict.__contains__(x):
+           if d_dict[x] != n_dict[x]:
+               return 0.0
+           else:
+               n_dict.__delitem__(x)
+
+    dist_table_row= 2 ** len(n_dict)
+    n_p=0
+    sum_p=0
+    index = 0
+    # found out the original index
+    for n in range(len(n_dict)):
+            tmp=n_dict.keys()[n]
+            if n_dict[tmp] == '+':
+                index += 0
+            else:
+                index += 1 * (2**n);
+    #print "this is index"
+    #print index
+
+    for row in range(dist_table_row):
+        var_values = get_var_values(row, len(n_dict))
+        nd_dict=copy.deepcopy(d_dict)
+        for j in range(len(n_dict)):
+            tmp=n_dict.keys()[j]
+            nd_dict[tmp]=var_values[j]
+        p1 = enumerate_all(my_bayes_net.node_name_list, nd_dict, my_bayes_net)
+        if(row == index):
+            n_p = p1 # record the original p for original sentence
+        sum_p +=p1
+    p = n_p/sum_p
+    return p
+
+
+def get_var_values(num, vars_number):
+    arr = []
+    for i in range(vars_number):
+        if (num >> i ) & 1 == 0:
+             arr.append('+')
+        else:
+            arr.append('-')
+    return arr
+
+
+def enumerate_all(variables, e, bn):
+    # e present for all the atomic
+    if not variables:
+        return 1.0
+
+    Y, rest = variables[0], variables[1:]
+    node = bn.get_bayesNode(Y)
+    if Y in e.keys():
+         return node.get_p(e[Y], e) * enumerate_all(rest, e, bn)
+    else:
+        # if Y not in the e, need to add y + and  y - situation to the event
+         eY_ture = copy.deepcopy(e)
+         eY_ture[Y] = '+'
+         eY_false = copy.deepcopy(e)
+         eY_false[Y] = '-'
+         #Figure 14.8 is good explation for this part
+         return node.get_p('+',e) * enumerate_all(rest, eY_ture, bn) + node.get_p('-',e) * enumerate_all(rest, eY_false, bn)
+
+
+
+
 
 
 ##------------------------------ data precessor--------------------------------------------###
@@ -60,9 +207,7 @@ input_file = open(fileName,'r')
 # create a query_list to store all the query;
 
 query_list = []
-
 query = input_file.readline().strip('\n')
-
 while query != "******":
     query_list.append(query)
     query = input_file.readline().strip('\n')
@@ -99,10 +244,7 @@ while query != '': # get the node input information
    # store in dict
     node = BayesNode(nodeName, parents, cpt, nodeType)
     my_bayes_net.add_bayesNode(node)
-
-
     # next line should be *** or "" or *****
-
     query = input_file.readline().strip('\n')
     # if query not equal to *** , all node have been store
     if(query != "***"):
@@ -127,10 +269,15 @@ if (query == "******"):
         cpt.append(table_line)
     node = BayesNode(nodeName, parents, cpt, 'utility')
     my_bayes_net.utility_node = node
-    print node.type
-print(my_bayes_net.nodes_list)
-print(my_bayes_net.node_name_list)
-print(my_bayes_net.utility_node.name)
+'''
+#already check the result is right
+for i in range(len(my_bayes_net.nodes_list)):
+    print(my_bayes_net.nodes_list[i].name)
+    print(my_bayes_net.nodes_list[i].parents)
+    print(my_bayes_net.nodes_list[i].cpt)
+    print(my_bayes_net.nodes_list[i].type)
+'''
+
 input_file.close()
 
 
@@ -138,11 +285,6 @@ input_file.close()
 
 
 
-
-
-
-
-'''
 for i in range(len(query_list)):
     go(query_list[i])
-'''''
+
