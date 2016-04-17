@@ -19,10 +19,10 @@ class BayesNetwork:
 
 class BayesNode:
     def __init__ (self, name, parents, cpt, node_type):
-          self.name = name
-          self.parents = parents
-          self.cpt = cpt
-          self.type = node_type
+        self.name = name
+        self.parents = parents
+        self.cpt = cpt
+        self.type = node_type
 
     def get_p(self,symbol,current_events):
         '''
@@ -71,7 +71,7 @@ def go(query_sentence):
                 tmp = var.split(' = ')
                 evi_var_dict[tmp[0]] = tmp[1]
             p = enumeration_ask(con_var_dict, evi_var_dict, my_bayes_net)
-            print p
+            writeReuslt("P", p)
 
 
 
@@ -83,7 +83,7 @@ def go(query_sentence):
                 even_dict[tmp[0]] = tmp[1]
             # need to calcuate the e
             p = enumerate_all(my_bayes_net.node_name_list, even_dict, my_bayes_net)
-            print p
+            writeReuslt("P", p)
 
 
 
@@ -97,7 +97,7 @@ def go(query_sentence):
              content = content.split(' = ')
              evidence[content[0]] = content[1]
          eu = compute_eu(evidence, my_bayes_net)
-         print eu
+         writeReuslt("EU", eu)
 
     elif key == 'MEU': #condiction is not set up ,but evidence must be now happen or not
          args_list = args_list.split(' | ' )
@@ -114,7 +114,19 @@ def go(query_sentence):
              con_vars_arr.append(con)
          # already store well the MEU data need to call compute_meu
          con_value, meu =compute_meu(con_vars_arr, evi_dict, my_bayes_net)
-         print con_value, meu
+         #print con_value
+         writeReuslt("MEU", meu, con_value)
+
+def writeReuslt(a,b,c = []):
+    if a == 'P':
+        result.write("%.2f" %round(b, 2))
+    elif a == 'EU':#python 3.2 round(2.5) equal 2
+        result.write(str(int(round(b))))
+    elif a == 'MEU':
+        meu_line = ''
+        for val in c:
+            meu_line += val + ' '
+        result.write(meu_line + str(int(round(b))))
 
 
 def compute_meu(con_vars_arr=[], evi_dict={}, bn = BayesNetwork()):
@@ -138,14 +150,7 @@ def compute_meu(con_vars_arr=[], evi_dict={}, bn = BayesNetwork()):
                 max_eu = eu
                 max_eu_con_var_value = tmp_con_value_arr
      #after compute all the get the most max one
-     return max_eu_con_var_value,max_eu
-
-
-
-
-
-
-
+    return max_eu_con_var_value,max_eu
 
 def compute_eu(e={}, bn=BayesNetwork()):
     # get the utility node
@@ -244,9 +249,11 @@ def enumerate_all(variables, e, bn):
 
 ##------------------------------ data precessor--------------------------------------------###
 #get the input
-#fileName = sys.argv[2]
-fileName ="sample02.txt"
+fileName = sys.argv[2]
+#fileName ="sample05.txt"
 input_file = open(fileName,'r')
+result_file = "output.txt"
+result = open(result_file, 'w')
 
 # create a query_list to store all the query;
 
@@ -329,6 +336,11 @@ input_file.close()
 
 
 
+firstline_flag = True
 for i in range(len(query_list)):
+    if firstline_flag != True:
+        result.write('\n')
+    firstline_flag = False
     go(query_list[i])
 
+result.close()
