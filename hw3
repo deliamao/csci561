@@ -114,12 +114,12 @@ def go(query_sentence):
              con_vars_arr.append(con)
          # already store well the MEU data need to call compute_meu
          con_value, meu =compute_meu(con_vars_arr, evi_dict, my_bayes_net)
-         #print con_value
+         #print meu
          writeReuslt("MEU", meu, con_value)
 
 def writeReuslt(a,b,c = []):
     if a == 'P':
-        result.write("%.2f" %round(b, 2))
+        result.write("%.2f" %round((b+1e-8), 2))
     elif a == 'EU':#python 3.2 round(2.5) equal 2
         result.write(str(int(round(b))))
     elif a == 'MEU':
@@ -146,6 +146,7 @@ def compute_meu(con_vars_arr=[], evi_dict={}, bn = BayesNetwork()):
         for j in range(con_var_length):
             con_evi[con_vars_arr[j]] = tmp_con_value_arr[j]
             eu = compute_eu(con_evi, bn)
+            #print eu
             if(eu > max_eu):
                 max_eu = eu
                 max_eu_con_var_value = tmp_con_value_arr
